@@ -11,7 +11,6 @@ int dbl_eq(double a, double b) {
     double diff = fabs(a - b);
     
     if (diff < EPS_ABS) return 1;
-    
     return diff <= EPS_REL * fmax(fabs(a), fabs(b));
 }
 
@@ -28,30 +27,29 @@ void mat_set(Matrix matrix, size_t dimension, size_t row, size_t col, double val
     matrix.mat[dimension * row + col] = val;
 }
 
-void debug_matrix(double * matrix, size_t dimension) {
+void debug_matrix(Matrix mat, size_t dimension) {
     for (size_t row = 0; row < dimension; row++) {
         printf("\n");
         for (size_t col = 0; col < dimension; col++) {
-            printf("%lf ", matrix[row * dimension + col]);
+            printf("%lf ", mat_get(mat, dimension, row, col));
         }
     }
     printf("\n");
 }
 
-void swap_rows(double * matrix, size_t dimension, size_t row_i, size_t row_j) {
+void swap_rows(Matrix mat, size_t dimension, size_t row_i, size_t row_j) {
     for (size_t index = 0; index < dimension; index++) {
-        double temp = matrix[dimension * row_i + index];
-        matrix[dimension * row_i + index] = matrix[dimension * row_j + index];
-        matrix[dimension * row_j + index] = temp;
-
+        double temp = mat_get(mat, dimension, row_i, index);
+        mat_set(mat, dimension, row_i, index, matget(mat, dimension, row_j, index));
+        mat_set(mat, dimension, row_j, index, temp);
     }
 }
 
-void prep_REF(double * matrix, size_t dimension) {
+void prep_REF(Matrix mat, size_t dimension) {
     for (size_t col = 0; col < dimension; col++) {
         for (size_t row = 0; row < dimension; row++) {
-            if (!dbl_eq(matrix[dimension * col + row], 0)) {
-                swap_rows(matrix, dimension, row, 0);
+            if (!dbl_eq(mat_get(mat, dimension, col, row), 0)) {
+                swap_rows(mat, dimension, row, 0);
                 return;
             }
         }
