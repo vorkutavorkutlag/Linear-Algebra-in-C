@@ -29,46 +29,60 @@ void mat_set(Matrix matrix, size_t dimension, size_t row, size_t col, double val
 
 void debug_matrix(Matrix mat, size_t dimension) {
     for (size_t row = 0; row < dimension; row++) {
-        printf("\n");
+        if (row) printf("\n");
         for (size_t col = 0; col < dimension; col++) {
-            printf("%lf ", mat_get(mat, dimension, row, col));
+            printf("%.2lf ", mat_get(mat, dimension, row, col));
         }
     }
     printf("\n");
 }
 
 void swap_rows(Matrix mat, size_t dimension, size_t row_i, size_t row_j) {
+    if (row_i == row_j) return;
+    
     for (size_t index = 0; index < dimension; index++) {
         double temp = mat_get(mat, dimension, row_i, index);
-        mat_set(mat, dimension, row_i, index, matget(mat, dimension, row_j, index));
+        mat_set(mat, dimension, row_i, index, mat_get(mat, dimension, row_j, index));
         mat_set(mat, dimension, row_j, index, temp);
     }
 }
 
-void prep_REF(Matrix mat, size_t dimension) {
-    for (size_t col = 0; col < dimension; col++) {
-        for (size_t row = 0; row < dimension; row++) {
-            if (!dbl_eq(mat_get(mat, dimension, col, row), 0)) {
-                swap_rows(mat, dimension, row, 0);
+/* searches and swaps top row with a row that has a more further pivot*/
+void prep_REF(Matrix mat, size_t dimension, size_t init_row) {
+    for (size_t row = init_row; row < dimension; row++) {
+        for (size_t col = 0; col < dimension; col++) {
+            if (!dbl_eq(mat_get(mat, dimension, row, col), 0)) {
+                swap_rows(mat, dimension, row, init_row);
                 return;
             }
         }
     }
 }
 
-void REF(double * matrix, size_t dimension) {
+void REF(Matrix mat, size_t dimension) {
     
-    prep_REF(matrix, dimension);
     
     double c;
-    for (size_t j = 0; j < dimension; j++) {
-        for (size_t i = 0; i < dimension; i++) {
-            if (i>j) {
-                c=matrix[i * dimension + j] / matrix[j * dimension + j];
+    for (size_t outer = 0; outer < dimension; outer++) {
+        
+        printf("ITER PRE PREP %zu\n", outer);
+        debug_matrix(mat, dimension);
+        
+        prep_REF(mat, dimension, outer);
+
+        for (size_t inner = 0; inner < dimension; inner++) {
+            if (inner<=outer) 
+                continue;
                 
-                for (size_t k = 0; k < dimension; k++) 
-                    matrix[i * dimension + k] -= c * matrix[j * dimension + k];
+            c = mat_get(mat, dimension, inner, outer) / mat_get(mat, dimension, outer, outer); 
+            
+            for (size_t k = 0; k < dimension; k++) {
+                double diff = mat_get(mat, dimension, inner, k) 
+                            - c * mat_get(mat, dimension, outer, k);
+                
+                mat_set(mat, dimension, inner, k, diff);
             }
+
         }
     }
 }
@@ -79,22 +93,21 @@ int main() {
     printf("Enter Dimension: ");
     scanf("%zu", &dimension);
     
-    double mat[dimension][dimension];
+    double matrix[dimension][dimension];
     
     printf("Enter Matrix:\n");
     for (size_t col = 0; col < dimension; col++) {
         for (size_t element_index = 0; element_index < dimension; element_index++) {
-            scanf("%lf", &mat[col][element_index]);
+            scanf("%lf", &matrix[col][element_index]);
         }
     }
+
+    Matrix mat;
+    mat.mat = matrix[0];
+
+    REF(mat, dimension);
     
-
-    Matrix matrix;
-    matrix.mat = mat[0];
-    printf("Top Right: %lf\n", mat_get(matrix, dimension, 0, 0));
-    return 0;
-
-    // REF(matrix[0], dimension);
-    REF(mat[0], dimension);
-    debug_matrix(mat[0], dimension);
+    printf("REF FORM\n");
+    
+    debug_matrix(mat, dimension);
 }
