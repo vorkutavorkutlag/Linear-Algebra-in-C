@@ -30,7 +30,7 @@ void debug_matrix(Matrix mat) {
     for (size_t row = 0; row < mat.dim; row++) {
         if (row) printf("\n");
         for (size_t col = 0; col < mat.dim; col++) {
-            printf("%.2lf ", mat_get(mat, row, col));
+            printf("%g ", mat_get(mat, row, col));
         }
     }
     printf("\n");
@@ -44,6 +44,7 @@ void swap_rows(Matrix mat, size_t row_i, size_t row_j) {
     }
 }
 
+/* Equivalent to Row Operation Ri <- Ri + cRj*/
 void row_addition(Matrix mat, size_t row_i, size_t row_j, double c) {
     for (size_t col = 0; col < mat.dim; col++) {
         double sum;
@@ -69,6 +70,7 @@ __ssize_t __prep_REF(Matrix mat, size_t init_row, bool * swap) {
 }
 
 /* given an upper triangular matrix, returns its determinant */
+/* that being, the product of its diagonal entries */
 double __det(Matrix mat) {
     double det = 1;
     for (size_t row_col = 0; row_col < mat.dim; row_col++) 
@@ -80,26 +82,28 @@ double __det(Matrix mat) {
 /* given matrix, rewrites it in REF form and returns its determinant */
 double GEM(Matrix mat) {  
     int det_coefficient = 1;
+    double det = 1;
     __ssize_t p_col;
     double scalar;
     bool swap;
     
     
-    for (size_t bot_row = 0; bot_row < mat.dim; bot_row++) {
+    for (size_t top_row = 0; top_row < mat.dim; top_row++) {
         
-        if ((p_col = __prep_REF(mat, bot_row, &swap)) == -1) return 0.0;
+        if ((p_col = __prep_REF(mat, top_row, &swap)) == -1) return 0.0;
         det_coefficient *= swap? -1: 1; // multiply by -1 if swapped
+        det *= mat_get(mat, top_row, top_row);
 
-        for (size_t top_row = bot_row+1; top_row < mat.dim; top_row++) {
+        for (size_t bot_row = top_row+1; bot_row < mat.dim; bot_row++) {
 
-            scalar = mat_get(mat, top_row, p_col) 
-                    / mat_get(mat, bot_row, p_col); 
+            scalar = mat_get(mat, bot_row, p_col) 
+                    / mat_get(mat, top_row, p_col); 
             
-            row_addition(mat, top_row, bot_row, -1 * scalar);
+            row_addition(mat, bot_row, top_row, -1.0 * scalar);
         }
     }
 
-    return det_coefficient * __det(mat);
+    return det_coefficient * det;
 }
 
 int main() {
@@ -127,5 +131,5 @@ int main() {
     
     debug_matrix(mat);
 
-    printf("Determinant: %lf\n", det);
+    printf("Determinant: %g\n", det);
 }
