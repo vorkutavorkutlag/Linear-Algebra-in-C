@@ -47,28 +47,44 @@ void swap_rows(Matrix mat, size_t dimension, size_t row_i, size_t row_j) {
     }
 }
 
-/* searches and swaps top row with a row that has a more further pivot*/
-void prep_REF(Matrix mat, size_t dimension, size_t init_row) {
-    for (size_t row = init_row; row < dimension; row++) {
-        for (size_t col = 0; col < dimension; col++) {
-            if (!dbl_eq(mat_get(mat, dimension, row, col), 0)) {
-                swap_rows(mat, dimension, row, init_row);
-                return;
-            }
-        }
+void row_addition(Matrix mat, size_t dimension, size_t row_i, size_t row_j, double c) {
+    for (size_t index = 0; index < dimension; index++) {
+        double new;
+        new = mat_get(mat, dimension, row_i, index);
+        new += c * mat_get(mat, dimension, row_j, index);
+        mat_set(mat, dimension, row_i, index, new);
     }
 }
 
-void REF(Matrix mat, size_t dimension) {
-    
-    
+/* searches and swaps top row with a row that has a more further pivot*/
+/* returns true if it has more pivots, false if it's a zero matrix starting from init_row*/
+bool prep_REF(Matrix mat, size_t dimension, size_t init_row) {
+    printf("PREP\n");
+
+    for (size_t col = 0; col < dimension; col++){
+        for (size_t row = init_row; row < dimension; row++) {
+            if (!dbl_eq(mat_get(mat, dimension, row, col), 0)) {
+                printf("found pivot %lf at %zu, %zu\n", mat_get(mat, dimension, row, col), row+1, col+1);
+                swap_rows(mat, dimension, row, init_row);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+void REF(Matrix mat, size_t dimension) {  
     double c;
     for (size_t outer = 0; outer < dimension; outer++) {
         
-        printf("ITER PRE PREP %zu\n", outer);
-        debug_matrix(mat, dimension);
+        // printf("ITER PRE PREP %zu\n", outer);
+        // debug_matrix(mat, dimension);
         
-        prep_REF(mat, dimension, outer);
+        if (!prep_REF(mat, dimension, outer)) return;
+
+        // printf("ITER POST PREP %zu\n", outer);
+        // debug_matrix(mat, dimension);
 
         for (size_t inner = 0; inner < dimension; inner++) {
             if (inner<=outer) 
@@ -76,12 +92,7 @@ void REF(Matrix mat, size_t dimension) {
                 
             c = mat_get(mat, dimension, inner, outer) / mat_get(mat, dimension, outer, outer); 
             
-            for (size_t k = 0; k < dimension; k++) {
-                double diff = mat_get(mat, dimension, inner, k) 
-                            - c * mat_get(mat, dimension, outer, k);
-                
-                mat_set(mat, dimension, inner, k, diff);
-            }
+            row_addition(mat, dimension, inner, outer, -1 * c);
 
         }
     }
