@@ -14,22 +14,22 @@ int dbl_eq(double a, double b) {
 }
 
 typedef struct {
-    size_t dimension;
+    size_t dim;
     double * mat;
 } Matrix;
 
 double mat_get(Matrix mat, size_t row, size_t col) {
-    return mat.mat[mat.dimension * row + col];
+    return mat.mat[mat.dim * row + col];
 }
 
 void mat_set(Matrix mat, size_t row, size_t col, double val) {
-    mat.mat[mat.dimension * row + col] = val;
+    mat.mat[mat.dim * row + col] = val;
 }
 
 void debug_matrix(Matrix mat) {
-    for (size_t row = 0; row < mat.dimension; row++) {
+    for (size_t row = 0; row < mat.dim; row++) {
         if (row) printf("\n");
-        for (size_t col = 0; col < mat.dimension; col++) {
+        for (size_t col = 0; col < mat.dim; col++) {
             printf("%.2lf ", mat_get(mat, row, col));
         }
     }
@@ -37,9 +37,7 @@ void debug_matrix(Matrix mat) {
 }
 
 void swap_rows(Matrix mat, size_t row_i, size_t row_j) {
-    if (row_i == row_j) return;
-    
-    for (size_t index = 0; index < mat.dimension; index++) {
+    for (size_t index = 0; index < mat.dim; index++) {
         double temp = mat_get(mat, row_i, index);
         mat_set(mat, row_i, index, mat_get(mat, row_j, index));
         mat_set(mat, row_j, index, temp);
@@ -47,7 +45,7 @@ void swap_rows(Matrix mat, size_t row_i, size_t row_j) {
 }
 
 void row_addition(Matrix mat, size_t row_i, size_t row_j, double c) {
-    for (size_t col = 0; col < mat.dimension; col++) {
+    for (size_t col = 0; col < mat.dim; col++) {
         double sum;
         sum = mat_get(mat, row_i, col);
         sum += c * mat_get(mat, row_j, col);
@@ -55,36 +53,53 @@ void row_addition(Matrix mat, size_t row_i, size_t row_j, double c) {
     }
 }
 
-/* searches and swaps given top row with a lower row that has a more further pivot*/
-/* returns further most pivot's index if it has more pivots*/
-/*returns -1 if it's a zero matrix starting from init_row*/
-__ssize_t __prep_REF(Matrix mat, size_t init_row) {
-    for (size_t col = 0; col < mat.dimension; col++){
-        for (size_t row = init_row; row < mat.dimension; row++) {
-            if (dbl_eq(mat_get(mat, row, col), 0)) continue; 
-            swap_rows(mat, row, init_row);
+/* searches and swaps given top row with a lower row that has a more further pivot */
+/* returns further most pivot's index if it has more pivots */
+/* returns -1 if it's a zero matrix starting from init_row */
+__ssize_t __prep_REF(Matrix mat, size_t init_row, bool * swap) {
+    for (size_t col = 0; col < mat.dim; col++){
+        for (size_t row = init_row; row < mat.dim; row++) {
+            if (dbl_eq(mat_get(mat, row, col), 0)) continue;
+            if (*swap = row != init_row)
+                swap_rows(mat, row, init_row);
             return col;
         }
     }
     return -1;
 }
 
-void REF(Matrix mat) {  
-    double scalar;
-    __ssize_t p_col;
+/* given an upper triangular matrix, returns its determinant */
+double __det(Matrix mat) {
+    double det = 1;
+    for (size_t row_col = 0; row_col < mat.dim; row_col++) 
+        det *= mat_get(mat, row_col, row_col);
     
-    for (size_t bot_row = 0; bot_row < mat.dimension; bot_row++) {
-        
-        if ((p_col = __prep_REF(mat, bot_row)) == -1) return;
+    return det;
+}
 
-        for (size_t top_row = bot_row+1; top_row < mat.dimension; top_row++) {
+/* given matrix, rewrites it in REF form and returns its determinant */
+double GEM(Matrix mat) {  
+    int det_coefficient = 1;
+    __ssize_t p_col;
+    double scalar;
+    bool swap;
+    
+    
+    for (size_t bot_row = 0; bot_row < mat.dim; bot_row++) {
+        
+        if ((p_col = __prep_REF(mat, bot_row, &swap)) == -1) return 0.0;
+        det_coefficient *= swap? -1: 1; // multiply by -1 if swapped
+
+        for (size_t top_row = bot_row+1; top_row < mat.dim; top_row++) {
 
             scalar = mat_get(mat, top_row, p_col) 
-                / mat_get(mat, bot_row, p_col); 
+                    / mat_get(mat, bot_row, p_col); 
             
             row_addition(mat, top_row, bot_row, -1 * scalar);
         }
     }
+
+    return det_coefficient * __det(mat);
 }
 
 int main() {
@@ -104,11 +119,13 @@ int main() {
 
     Matrix mat;
     mat.mat = matrix[0];
-    mat.dimension = dimension;
+    mat.dim = dimension;
     
-    REF(mat);
+    double det = GEM(mat);
     
     printf("REF FORM\n");
     
     debug_matrix(mat);
+
+    printf("Determinant: %lf\n", det);
 }
