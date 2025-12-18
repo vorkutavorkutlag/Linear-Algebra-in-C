@@ -10,7 +10,6 @@
 int dbl_eq(double a, double b) {
     double diff = fabs(a - b);
     
-    // if (diff < EPS_ABS) return 1;
     return (diff < EPS_ABS) || (diff <= EPS_REL * fmax(fabs(a), fabs(b)));
 }
 
@@ -57,40 +56,33 @@ void row_addition(Matrix mat, size_t row_i, size_t row_j, double c) {
 }
 
 /* searches and swaps given top row with a lower row that has a more further pivot*/
-/* returns true if it has more pivots, false if it's a zero matrix starting from init_row*/
-bool prep_REF(Matrix mat, size_t init_row) {
+/* returns further most pivot's index if it has more pivots*/
+/*returns -1 if it's a zero matrix starting from init_row*/
+__ssize_t __prep_REF(Matrix mat, size_t init_row) {
     for (size_t col = 0; col < mat.dimension; col++){
         for (size_t row = init_row; row < mat.dimension; row++) {
             if (dbl_eq(mat_get(mat, row, col), 0)) continue; 
-            
             swap_rows(mat, row, init_row);
-            return true;
+            return col;
         }
     }
-    return false;
+    return -1;
 }
 
 void REF(Matrix mat) {  
-    double c;
+    double scalar;
+    __ssize_t p_col;
     
-    for (size_t outer = 0; outer < mat.dimension; outer++) {
+    for (size_t bot_row = 0; bot_row < mat.dimension; bot_row++) {
+        
+        if ((p_col = __prep_REF(mat, bot_row)) == -1) return;
 
-        printf("PRE PREP ITER %zu\n", outer);
-        debug_matrix(mat);
+        for (size_t top_row = bot_row+1; top_row < mat.dimension; top_row++) {
 
-        if (!prep_REF(mat, outer)) return;
-
-        printf("POST PREP ITER %zu\n", outer);
-        debug_matrix(mat);
-
-        for (size_t inner = 0; inner < mat.dimension; inner++) {
-            if (inner<=outer) 
-                continue;
-                
-            c = mat_get(mat, inner, outer) 
-                / mat_get(mat, outer, outer); 
+            scalar = mat_get(mat, top_row, p_col) 
+                / mat_get(mat, bot_row, p_col); 
             
-            row_addition(mat, inner, outer, -1 * c);
+            row_addition(mat, top_row, bot_row, -1 * scalar);
         }
     }
 }
