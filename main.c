@@ -4,98 +4,15 @@
 #include <stdbool.h>
 #include <math.h>
 
+#include "complex_polynomial.h"
+#include "matrix.h"
+
 #define EPS_ABS 1e-12
 #define EPS_REL 1e-9
 
 int dbl_eq(double a, double b) {
   double diff = fabs(a - b);
   return (diff < EPS_ABS) || (diff <= EPS_REL * fmax(fabs(a), fabs(b)));
-}
-
-typedef struct {
-  size_t dim;
-  double * mat;
-} Matrix;
-
-typedef struct {
-  double real;
-  double im;
-} Complex;
-
-typedef struct {
-	size_t degree;
-  Complex * coefficients; // of size `degree`. array of the complex coefficients of every degree
-} Polynomial;
-
-Complex complex_sum(Complex comp1, Complex comp2) {
-  return (Complex) {comp1.real + comp2.real, comp1.im + comp2.im};
-}
-
-Complex complex_product(Complex comp1, Complex comp2) {
-  Complex c1, c2;
-  c1 = (Complex) {comp1.real * comp2.real, comp1.real * comp2.im};
-  c2 = (Complex) {-1 * comp1.im * comp2.im, comp1.im * comp1.real};
-  return complex_sum(c1, c2);
-}
-
- Polynomial polynomial_product(Polynomial poly1, Polynomial poly2) {
-  size_t prod_degree = poly1.degree + poly2.degree;
-  Complex * prod_coefficients = (Complex *) calloc(prod_degree, sizeof(Complex));
-
-  for (size_t degree1 = 0; degree1 <= poly1.degree; degree1++) {
-    for (size_t degree2 = 0; degree2 <= poly2.degree; degree2++) {
-      prod_coefficients[degree1+degree2] = complex_sum(prod_coefficients[degree1+degree2], 
-                                              complex_product(poly1.coefficients[degree1], 
-                                                              poly2.coefficients[degree2]));
-    }
-  }
-
-  return (Polynomial) {prod_degree, prod_coefficients};
-}
-
-void polynomial_free(Polynomial poly) {
-  free(poly.coefficients);
-}
-
-void polynomial_scalar_mult(Polynomial * poly, Complex scalar) {
-  for (size_t deg = 0; deg <= poly->degree; deg++)
-    poly->coefficients[deg] = complex_product(poly->coefficients[deg], scalar);
-}
-
-double mat_get(Matrix mat, size_t row, size_t col) {
-  return mat.mat[mat.dim * row + col];
-}
-
-void mat_set(Matrix mat, size_t row, size_t col, double val) {
-  mat.mat[mat.dim * row + col] = val;
-}
-
-void debug_matrix(Matrix mat) {
-  for (size_t row = 0; row < mat.dim; row++) {
-    if (row) printf("\n");
-      for (size_t col = 0; col < mat.dim; col++) {
-        printf("%g ", mat_get(mat, row, col));
-      }
-  }
-  printf("\n");
-}
-
-void swap_rows(Matrix mat, size_t row_i, size_t row_j) {
-  for (size_t index = 0; index < mat.dim; index++) {
-    double temp = mat_get(mat, row_i, index);
-    mat_set(mat, row_i, index, mat_get(mat, row_j, index));
-    mat_set(mat, row_j, index, temp);
-  }
-}
-
-/* Equivalent to Row Operation Ri <- Ri + cRj*/
-void row_addition(Matrix mat, size_t row_i, size_t row_j, double c) {
-  double sum;
-  for (size_t col = 0; col < mat.dim; col++) {
-    sum = mat_get(mat, row_i, col);
-    sum += c * mat_get(mat, row_j, col);
-    mat_set(mat, row_i, col, sum);
-  }
 }
 
 
@@ -164,6 +81,7 @@ int main() {
   for (size_t deg = 0; deg <= prod.degree; deg++)
     printf("%.2lf\n", prod.coefficients[prod.degree-deg].real);
   printf("\n");
+  polynomial_free(prod);
   return 0;
 
   size_t dimension;
