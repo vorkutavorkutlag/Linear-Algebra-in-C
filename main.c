@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <math.h>
 
-#include "complex_polynomial.h"
 #include "matrix.h"
 
 #define EPS_ABS 1e-12
@@ -23,6 +22,15 @@ double __det(Matrix mat) {
   for (size_t row_col = 0; row_col < mat.dim; row_col++) 
     det *= mat_get(mat, row_col, row_col);
   return det;
+}
+
+/* returns variable polynomial for a square matrix */
+/* assumes polynomials are in the diagonals*/
+Polynomial __sm_det(PolyMatrix mat) {
+  Polynomial prod = polynomial_product(pmat_get(mat, 0, 0).polynomial, pmat_get(mat, 1, 1).polynomial);
+  prod.coefficients[0] = complex_sum( prod.coefficients[0],
+                                    (Complex) {-1 * pmat_get(mat, 0, 1).scalar * pmat_get(mat, 1, 0).scalar, 0});
+  return prod;
 }
 
 /* searches and swaps given top row with a lower row that has a more further pivot */
@@ -71,17 +79,23 @@ double GEM(Matrix mat) {
 
 int main() {
 
-  Complex poly_c1[] = { (Complex) {1, 0}, (Complex) {3, 0}, (Complex) {4, 0} };
-  Complex poly_c2[] = { (Complex) {0,0}, (Complex) {1, 0}, (Complex) {2, 0} };
+  Complex poly_c1[] = { (Complex) {-1, 0}, (Complex) {1, 0} };
 
-  Polynomial poly1 = (Polynomial) {2, poly_c1};
-  Polynomial poly2 = (Polynomial) {2, poly_c2};
-  Polynomial prod = polynomial_product(poly1, poly2);
-
-  for (size_t deg = 0; deg <= prod.degree; deg++)
-    printf("%.2lf\n", prod.coefficients[prod.degree-deg].real);
+  Polynomial poly1 = (Polynomial) {1, poly_c1};
+  pmat_item pmatrix[2][2];
+  pmatrix[0][0].polynomial = poly1;
+  pmatrix[0][1].scalar = 0;
+  pmatrix[1][1].polynomial = poly1;
+  pmatrix[1][0].scalar = 0;
+  PolyMatrix pmat;
+  pmat.dim = 2;
+  pmat.mat = pmatrix[0];
+  
+  Polynomial dete = __sm_det(pmat);
+  for (int i = 0; i <= dete.degree; i++)
+    printf("%lf x ^ %d + ", dete.coefficients[i].real, i);
   printf("\n");
-  polynomial_free(prod);
+
   return 0;
 
   size_t dimension;

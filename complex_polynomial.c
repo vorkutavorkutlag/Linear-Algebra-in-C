@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "complex_polynomial.h"
 
 Complex complex_sum(Complex comp1, Complex comp2) {
@@ -11,12 +12,28 @@ Complex complex_product(Complex comp1, Complex comp2) {
   return complex_sum(c1, c2);
 }
 
+Polynomial polynomial_sum(Polynomial poly1, Polynomial poly2) {
+  size_t sum_degree = poly1.degree >= poly2.degree ? poly1.degree : poly2.degree;
+  Complex * sum_coefficients = (Complex *) calloc(sum_degree+1, sizeof(Complex));
+  for (size_t index; index <= sum_degree; index++) {
+    sum_coefficients[index] = complex_sum(sum_coefficients[index],
+                                          poly1.degree >= sum_degree ? poly1.coefficients[index] : (Complex) {0, 0});
+    sum_coefficients[index] = complex_sum(sum_coefficients[index],
+                                          poly2.degree >= sum_degree ? poly2.coefficients[index] : (Complex) {0, 0});
+  }
+
+  return (Polynomial) {sum_degree, sum_coefficients};
+
+}
+
 Polynomial polynomial_product(Polynomial poly1, Polynomial poly2) {
   size_t prod_degree = poly1.degree + poly2.degree;
-  Complex * prod_coefficients = (Complex *) calloc(prod_degree, sizeof(Complex));
+  printf("Allocating degree %zu\n", prod_degree);
+  Complex * prod_coefficients = (Complex *) calloc(prod_degree+1, sizeof(Complex));
 
   for (size_t degree1 = 0; degree1 <= poly1.degree; degree1++) {
     for (size_t degree2 = 0; degree2 <= poly2.degree; degree2++) {
+      printf("iter ");
       prod_coefficients[degree1+degree2] = complex_sum(prod_coefficients[degree1+degree2], 
                                               complex_product(poly1.coefficients[degree1], 
                                                               poly2.coefficients[degree2]));
