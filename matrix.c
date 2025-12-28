@@ -8,6 +8,13 @@ double mat_get(Matrix mat, size_t row, size_t col) {
 void mat_set(Matrix mat, size_t row, size_t col, double val) {
   mat.mat[mat.dim * row + col] = val;
 }
+pmat_item pmat_get(PolyMatrix mat, size_t row, size_t col) {
+  return mat.mat[mat.dim * row + col];
+}
+
+void pmat_set(PolyMatrix mat, size_t row, size_t col, pmat_item val) {
+    mat.mat[mat.dim * row + col] = val;
+}
 
 void debug_matrix(Matrix mat) {
   for (size_t row = 0; row < mat.dim; row++) {
@@ -36,5 +43,3 @@ void row_addition(Matrix mat, size_t row_i, size_t row_j, double c) {
     mat_set(mat, row_i, col, sum);
   }
 }
-
-
