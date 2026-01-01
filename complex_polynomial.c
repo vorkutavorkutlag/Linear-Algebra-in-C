@@ -8,6 +8,16 @@
 #define C_NAN (Complex) {NAN, NAN};
 #define NR_THRESHOLD 1e-6
 
+#define M_PI 3.14159265358979323846
+
+#define EPS_ABS 1e-12
+#define EPS_REL 1e-9
+
+int dbl_eq(double a, double b) {
+  double diff = fabs(a - b);
+  return (diff < EPS_ABS) || (diff <= EPS_REL * fmax(fabs(a), fabs(b)));
+}
+
 Complex complex_sum(Complex comp1, Complex comp2) {
   return (Complex) {comp1.real + comp2.real, comp1.im + comp2.im};
 }
@@ -20,11 +30,20 @@ Complex complex_neg(Complex comp) {
   return (Complex) {-1.0 * comp.real, -1.0 * comp.im};
 }
 
+Complex complex_smult(Complex comp, double s) {
+  return (Complex) {comp.real * s, comp.im * s};
+}
+
 Complex complex_product(Complex comp1, Complex comp2) {
   Complex c1, c2;
   c1 = (Complex) {comp1.real * comp2.real, comp1.real * comp2.im};
   c2 = (Complex) {-1 * comp1.im * comp2.im, comp1.im * comp1.real};
   return complex_sum(c1, c2);
+}
+
+/* Receives the exponent in form e^ix, converts to cosx+isinx */
+Complex complex_euler(double theta) {
+  return (Complex) {cos(theta), sin(theta)};
 }
 
 int complex_nan(Complex comp) {
@@ -40,6 +59,8 @@ double complex_diff(Complex comp1, Complex comp2) {
   Complex comp_diff = (Complex) {comp1.real - comp2.real, comp1.im - comp2.im};
   return complex_abs(comp_diff);
 }
+
+
 
 /* Divides comp1 by comp2*/
 /* Multiplied by conjugate, then divded. */
@@ -63,6 +84,18 @@ Complex polynomial_evaluate(Polynomial poly, Complex val) {
   }
 
   return sum;
+}
+
+double polynomial_max_ratio(Polynomial poly) {
+  double max = -INFINITY;
+  double abs_coeff;
+
+  for (size_t i = 0; i <= poly.degree - 1; i++) {
+    abs_coeff = complex_abs(poly.coefficients[i]);
+    max = abs_coeff > max ? abs_coeff: max; 
+  }
+
+  return max / complex_abs(poly.coefficients[poly.degree]);
 }
 
 /* Creates new polynomial on the heap. */
@@ -127,30 +160,67 @@ Polynomial polynomial_division(Polynomial poly1, Polynomial poly2) {
   return quotient;
 }
 
-
+int dummy_assignment(Complex * c1, Complex c2) {
+  *c1 = c2;
+  return 1;
+}
 
 Complex newton_raphson(Polynomial poly, Complex init_guess) {
-  
-    int dummy_assignment(Complex * c1, Complex c2) {
-      *c1 = c2;
-      return 1;
-    }
-  
   Polynomial poly_der = polynomial_derivative(poly);
   Complex x_n = init_guess;
   Complex x_m;
+  double diff;
 
-  do {
+  size_t MAX_TRIES = 99;
+  for (size_t attempt = 0; attempt < MAX_TRIES; attempt ++) {
     Complex f_x = polynomial_evaluate(poly, x_n);
     Complex df_x = polynomial_evaluate(poly_der, x_n);
 
-    if (copmlex_abs(df_x) <= NR_THRESHOLD) {polynomial_free(poly_der); return C_NAN;}
+    if (complex_abs(df_x) <= NR_THRESHOLD) {polynomial_free(poly_der); return C_NAN;}
 
     x_m = complex_sum(x_n, complex_neg( complex_division(f_x, df_x)) );
-  } while (complex_diff(x_n, x_m) >= NR_THRESHOLD && dummy_assignment(&x_n, x_m));
+
+    if (complex_nan(x_m)) {polynomial_free(poly_der); return C_NAN;}
+
+    printf("Next Guess: %lf + %lfi\n", x_m.real, x_m.im);
+    
+    diff = complex_abs(polynomial_evaluate(poly, x_m));
+    
+    printf("Diff: %lf\n", diff);
+
+    if (diff <= NR_THRESHOLD) {polynomial_free(poly_der); return x_m;}
+
+    x_n = x_m;
+  }
 
   polynomial_free(poly_der);
-  return x_n;
+  return C_NAN;
+}
+
+
+
+/* It satisfies that all roots |z| <= 1 + polynomial_max_ratio(poly) */
+Complex cauchy_nr_root(Polynomial poly) {
+  double radius = 1 + polynomial_max_ratio(poly);
+  printf("Radius: %lf\n", radius);
+  double theta;
+  Complex z_k;
+  Complex root;
+
+  // we choose initial guesses on the circle
+  size_t SAMPLES = 4 * poly.degree;
+  for (size_t k = 0; k < SAMPLES; k++) {
+    printf("Iter %zu\n", k);
+    theta = 2 * M_PI * k / SAMPLES;
+
+    z_k = complex_smult(complex_euler(theta), radius);
+    printf("Guess: %lf + %lfi\n", z_k.real, z_k.im);
+    root = newton_raphson(poly, z_k);
+
+    if (!complex_nan(root)) return root;
+  }
+
+  return C_NAN;
 }
 
 void polynomial_free(Polynomial poly) {
