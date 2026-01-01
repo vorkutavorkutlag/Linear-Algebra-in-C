@@ -23,14 +23,6 @@ double __det(Matrix mat) {
   return det;
 }
 
-/* returns variable polynomial for a square matrix */
-/* assumes polynomials are in the diagonals*/
-Polynomial __sm_det(PolyMatrix mat) {
-  Polynomial prod = polynomial_product(pmat_get(mat, 0, 0).polynomial, pmat_get(mat, 1, 1).polynomial);
-  prod.coefficients[0] = complex_sum( prod.coefficients[0],
-                                    (Complex) {-1 * pmat_get(mat, 0, 1).scalar * pmat_get(mat, 1, 0).scalar, 0});
-  return prod;
-}
 
 /* searches and swaps given top row with a lower row that has a more further pivot */
 /* returns further most pivot's index if it has more pivots */
@@ -90,11 +82,6 @@ int main() {
   pmat.dim = 2;
   pmat.mat = pmatrix[0];
   
-  Polynomial dete = __sm_det(pmat);
-  for (int i = 0; i <= dete.degree; i++)
-    printf("%lf x ^ %d + ", dete.coefficients[i].real, i);
-  printf("\n");
-
   return 0;
 
   size_t dimension;
