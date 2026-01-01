@@ -5,14 +5,6 @@
 
 #include "matrix.h"
 
-#define EPS_ABS 1e-12
-#define EPS_REL 1e-9
-
-int dbl_eq(double a, double b) {
-  double diff = fabs(a - b);
-  return (diff < EPS_ABS) || (diff <= EPS_REL * fmax(fabs(a), fabs(b)));
-}
-
 
 /* given an upper triangular matrix, returns its determinant */
 /* that being, the product of its diagonal entries */
@@ -70,18 +62,19 @@ double GEM(Matrix mat) {
 
 int main() {
 
-  Complex poly_c1[] = { (Complex) {-1, 0}, (Complex) {1, 0} };
+  Complex poly_c1[] = { (Complex) {1, 0}, (Complex) {-1, 0} , (Complex) {1, 0} };
+  // Complex poly_c2[] = { (Complex) {0, 0}, (Complex) {1, 0} , (Complex) {3, 0} , (Complex) {0, 0}, (Complex) {1, 0} };
 
-  Polynomial poly1 = (Polynomial) {1, poly_c1};
-  pmat_item pmatrix[2][2];
-  pmatrix[0][0].polynomial = poly1;
-  pmatrix[0][1].scalar = 0;
-  pmatrix[1][1].polynomial = poly1;
-  pmatrix[1][0].scalar = 0;
-  PolyMatrix pmat;
-  pmat.dim = 2;
-  pmat.mat = pmatrix[0];
+
+  Polynomial poly1 = (Polynomial) {2UL, poly_c1};
+  // Polynomial poly2 = (Polynomial) {4UL, poly_c1};
   
+  Complex root = cauchy_nr_root(poly1);
+  // Complex root2 = cauchy_nr_root(poly2);
+
+  printf("%lf %lf \n", root.real, root.im);
+  // printf("%lf %lf \n", root2.real, root2.im);
+
   return 0;
 
   size_t dimension;
