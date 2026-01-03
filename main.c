@@ -66,13 +66,17 @@ int main() {
   // Complex poly_c2[] = { (Complex) {0, 0}, (Complex) {1, 0} , (Complex) {3, 0} , (Complex) {0, 0}, (Complex) {1, 0} };
 
 
-  Polynomial poly1 = (Polynomial) {2UL, poly_c1};
+  Polynomial poly1 = (Polynomial) {2, poly_c1};
   // Polynomial poly2 = (Polynomial) {4UL, poly_c1};
   
-  Complex root = cauchy_nr_root(poly1);
+  Complex * roots = polynomial_all_roots(poly1);
   // Complex root2 = cauchy_nr_root(poly2);
 
-  printf("%lf %lf \n", root.real, root.im);
+  for (size_t index = 0; index < poly1.degree; index++) {
+    printf("Root %zu: %lf + %lfi\n", index, roots[index].real, roots[index].im);
+  }
+
+  // printf("%lf %lf \n", root.real, root.im);
   // printf("%lf %lf \n", root2.real, root2.im);
 
   return 0;

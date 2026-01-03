@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 #include "complex_polynomial.h"
 
 #define C_ZERO (Complex) {0, 0}
@@ -34,11 +35,9 @@ Complex complex_smult(Complex comp, double s) {
   return (Complex) {comp.real * s, comp.im * s};
 }
 
-Complex complex_product(Complex comp1, Complex comp2) {
-  Complex c1, c2;
-  c1 = (Complex) {comp1.real * comp2.real, comp1.real * comp2.im};
-  c2 = (Complex) {-1 * comp1.im * comp2.im, comp1.im * comp1.real};
-  return complex_sum(c1, c2);
+Complex complex_product(Complex a, Complex b) {
+  return (Complex) { a.real * b.real - a.im * b.im,
+                    a.real * b.im + a.im * b.real };
 }
 
 /* Receives the exponent in form e^ix, converts to cosx+isinx */
@@ -66,7 +65,7 @@ double complex_diff(Complex comp1, Complex comp2) {
 /* Multiplied by conjugate, then divded. */
 Complex complex_division(Complex comp1, Complex comp2) {
   Complex nom = complex_product(comp1, complex_conjugate(comp2));
-  double denom = comp2.real * comp2.real + comp2.im + comp2.im;
+  double denom = comp2.real * comp2.real + comp2.im * comp2.im;
   return (Complex) {nom.real / denom, nom.im / denom};
 }
 
@@ -103,10 +102,8 @@ Polynomial polynomial_sum(Polynomial poly1, Polynomial poly2) {
   size_t sum_degree = poly1.degree >= poly2.degree ? poly1.degree : poly2.degree;
   Complex * sum_coefficients = (Complex *) calloc(sum_degree+1, sizeof(Complex));
   for (size_t index = 0; index <= sum_degree; index++) {
-    sum_coefficients[index] = complex_sum(sum_coefficients[index],
-                                          poly1.degree >= sum_degree ? poly1.coefficients[index] : C_ZERO);
-    sum_coefficients[index] = complex_sum(sum_coefficients[index],
-                                          poly2.degree >= sum_degree ? poly2.coefficients[index] : C_ZERO);
+    if (index <= poly1.degree) sum_coefficients[index] = complex_sum(sum_coefficients[index], poly1.coefficients[index]);
+    if (index <= poly2.degree) sum_coefficients[index] = complex_sum(sum_coefficients[index], poly2.coefficients[index]);
   }
 
   return (Polynomial) {sum_degree, sum_coefficients};
@@ -115,13 +112,21 @@ Polynomial polynomial_sum(Polynomial poly1, Polynomial poly2) {
 /* Creates a new polynomial on the heap. */
 Polynomial polynomial_derivative(Polynomial poly) {
   size_t der_degree = poly.degree - 1;
-  Complex * der_coefficients = (Complex *) calloc(der_degree, sizeof(Complex));
+  Complex * der_coefficients = (Complex *) calloc(der_degree+1, sizeof(Complex));
 
   for (size_t index = 1; index <= poly.degree; index++) {
     der_coefficients[index-1] = complex_product(poly.coefficients[index], (Complex) { (double) index, 0});
   }
 
   return (Polynomial) {der_degree, der_coefficients};
+}
+
+/* Returns polynomial copy on the heap */
+Polynomial polynomial_copy(Polynomial poly) {
+  size_t size = (poly.degree+1) * sizeof(Complex);
+  Complex * coefficients = (Complex *) malloc (size);
+  memcpy(coefficients, poly.coefficients, size);
+  return (Polynomial) {poly.degree, coefficients};
 }
 
 /* Creates new polynomial on the heap. */
@@ -143,15 +148,14 @@ Polynomial polynomial_product(Polynomial poly1, Polynomial poly2) {
 /* Assumes poly2 is single-degree. Uses synthetic division
  * Creates new polynomial on the heap. */
 Polynomial polynomial_division(Polynomial poly1, Polynomial poly2) {
-  // zx+y = 0 => x=-y/z
+  // zx+y = 0 => x=-y/z  
   Complex root = complex_neg(complex_division(poly2.coefficients[0], poly2.coefficients[1]));
+  
+  Complex * coefficients = (Complex *) calloc (poly1.degree, sizeof(Complex));
+  Polynomial quotient = (Polynomial) {poly1.degree - 1, coefficients};
 
-  Polynomial quotient;
-  quotient.degree = poly2.degree - 1;
-  quotient.coefficients = (Complex *) calloc (poly2.degree, sizeof(Complex));
-
-  Complex cur_coefficient = poly2.coefficients[poly2.degree];
-
+  Complex cur_coefficient = poly1.coefficients[poly1.degree];
+  
   for (size_t cur_deg = poly1.degree; cur_deg >= 1; cur_deg--) {
     quotient.coefficients[cur_deg - 1] = cur_coefficient;
     cur_coefficient = complex_sum(complex_product(root, cur_coefficient), poly1.coefficients[cur_deg - 1]);
@@ -160,21 +164,36 @@ Polynomial polynomial_division(Polynomial poly1, Polynomial poly2) {
   return quotient;
 }
 
-int dummy_assignment(Complex * c1, Complex c2) {
-  *c1 = c2;
-  return 1;
+// For given z, returns (x-z)
+Polynomial polynomial_from_root(Complex r) {
+  Complex *coefficients = (Complex *) malloc(2 * sizeof(Complex));
+  coefficients[0] = complex_neg(r);
+  coefficients[1] = C_ONE;
+  return (Polynomial) {1, coefficients};
+}
+
+
+void polynomial_debug(Polynomial poly) {
+  for (__ssize_t index = poly.degree; index >= 0; index--) {
+    if (index > 0)
+      printf("( %lf + %lfi ) x ^ %zu + ", poly.coefficients[index].real, poly.coefficients[index].im, index);
+    else
+      printf("( %lf + %lfi ) x ^ %zu\n", poly.coefficients[index].real, poly.coefficients[index].im, index);
+  }
 }
 
 Complex newton_raphson(Polynomial poly, Complex init_guess) {
   Polynomial poly_der = polynomial_derivative(poly);
   Complex x_n = init_guess;
-  Complex x_m;
+  Complex x_m, f_x, df_x;
   double diff;
 
-  size_t MAX_TRIES = 99;
-  for (size_t attempt = 0; attempt < MAX_TRIES; attempt ++) {
-    Complex f_x = polynomial_evaluate(poly, x_n);
-    Complex df_x = polynomial_evaluate(poly_der, x_n);
+
+
+  size_t MAX_ITERATIONS = 99;
+  for (size_t iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
+    f_x = polynomial_evaluate(poly, x_n);
+    df_x = polynomial_evaluate(poly_der, x_n);
 
     if (complex_abs(df_x) <= NR_THRESHOLD) {polynomial_free(poly_der); return C_NAN;}
 
@@ -182,12 +201,8 @@ Complex newton_raphson(Polynomial poly, Complex init_guess) {
 
     if (complex_nan(x_m)) {polynomial_free(poly_der); return C_NAN;}
 
-    printf("Next Guess: %lf + %lfi\n", x_m.real, x_m.im);
-    
     diff = complex_abs(polynomial_evaluate(poly, x_m));
     
-    printf("Diff: %lf\n", diff);
-
     if (diff <= NR_THRESHOLD) {polynomial_free(poly_der); return x_m;}
 
     x_n = x_m;
@@ -200,9 +215,9 @@ Complex newton_raphson(Polynomial poly, Complex init_guess) {
 
 
 /* It satisfies that all roots |z| <= 1 + polynomial_max_ratio(poly) */
+/* Samples across the radius of the circle until finding a converging root */
 Complex cauchy_nr_root(Polynomial poly) {
   double radius = 1 + polynomial_max_ratio(poly);
-  printf("Radius: %lf\n", radius);
   double theta;
   Complex z_k;
   Complex root;
@@ -210,17 +225,40 @@ Complex cauchy_nr_root(Polynomial poly) {
   // we choose initial guesses on the circle
   size_t SAMPLES = 4 * poly.degree;
   for (size_t k = 0; k < SAMPLES; k++) {
-    printf("Iter %zu\n", k);
     theta = 2 * M_PI * k / SAMPLES;
 
     z_k = complex_smult(complex_euler(theta), radius);
-    printf("Guess: %lf + %lfi\n", z_k.real, z_k.im);
     root = newton_raphson(poly, z_k);
 
     if (!complex_nan(root)) return root;
   }
 
   return C_NAN;
+}
+
+/* Returns a vector of complex roots on heap */
+Complex * polynomial_all_roots(Polynomial poly) {
+  // could be optimised to use newton raphson until quintic degree, at which point use formula...
+
+  Complex * roots = (Complex *) calloc (poly.degree, sizeof(Complex)); // FTOA guarantees n complex roots
+  Polynomial cur_poly = polynomial_copy(poly), root_poly, temp_poly;
+  Complex cur_root;
+
+  for (size_t index = 0; index < poly.degree; index++) {
+    cur_root = cauchy_nr_root(cur_poly);
+
+    roots[index] = cur_root;
+    root_poly = polynomial_from_root(cur_root);
+    temp_poly = cur_poly;
+
+    cur_poly = polynomial_division(temp_poly, root_poly); // deflate
+    
+
+    polynomial_free(root_poly);
+    polynomial_free(temp_poly);
+  }
+
+  return roots;
 }
 
 void polynomial_free(Polynomial poly) {
