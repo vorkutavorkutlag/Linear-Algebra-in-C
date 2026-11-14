@@ -64,13 +64,13 @@ int main() {
   printf(
       "Square matrix determinant, or solve characteristic polynomial? [M/P]\n");
   if (scanf("%c", &route) != 1) {
-    fprintf(stderr, "Invalid input. Choose M or P.");
+    fprintf(stderr, "Invalid input. Choose M or P.\n");
     return EXIT_FAILURE;
   }
 
   if (route == 'M') {
     size_t dimension;
-    printf("Enter dimension of real square matrix: ");
+    printf("Enter dimension of real square matrix:\n");
     scanf("%zu", &dimension);
 
     double matrix[dimension][dimension];

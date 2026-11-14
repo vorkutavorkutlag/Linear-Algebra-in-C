@@ -270,7 +270,6 @@ Complex *polynomial_all_roots(Polynomial poly) {
     root_poly = polynomial_from_root(cur_root);
     temp_poly = cur_poly;
 
-    polynomial_free(cur_poly);
     cur_poly = polynomial_division(temp_poly, root_poly); // deflate
 
     polynomial_free(root_poly);
