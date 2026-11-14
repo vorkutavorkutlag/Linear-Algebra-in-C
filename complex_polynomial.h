@@ -26,7 +26,7 @@ Polynomial polynomial_division(Polynomial poly1, Polynomial poly2);
 Polynomial polynomial_sum(Polynomial poly1, Polynomial poly2);
 Polynomial polynomial_derivative(Polynomial poly);
 
-int dummy_assignment(Complex * c1, Complex c2);
+// int dummy_assignment(Complex * c1, Complex c2);
 Complex cauchy_nr_root(Polynomial poly);
 Complex * polynomial_all_roots(Polynomial poly);
 
